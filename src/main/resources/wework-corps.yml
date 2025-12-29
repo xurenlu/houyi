@@ -1,0 +1,27 @@
+# 企业微信配置
+# 在这里配置所有需要监控的企业微信信息
+# 注意: 敏感信息建议使用环境变量
+
+wework:
+  corps:
+    # 示例企业 1
+    - corp-id: ${WEWORK_CORP1_ID:}
+      corp-name: ${WEWORK_CORP1_NAME:示例企业1}
+      secret: ${WEWORK_CORP1_SECRET:}
+      private-key: ${WEWORK_CORP1_PRIVATE_KEY:}
+      enabled: ${WEWORK_CORP1_ENABLED:true}
+
+    # 示例企业 2
+    - corp-id: ${WEWORK_CORP2_ID:}
+      corp-name: ${WEWORK_CORP2_NAME:示例企业2}
+      secret: ${WEWORK_CORP2_SECRET:}
+      private-key: ${WEWORK_CORP2_PRIVATE_KEY:}
+      enabled: ${WEWORK_CORP2_ENABLED:false}
+
+    # 可以继续添加更多企业...
+    # - corp-id: ${WEWORK_CORP3_ID:}
+    #   corp-name: ${WEWORK_CORP3_NAME:示例企业3}
+    #   secret: ${WEWORK_CORP3_SECRET:}
+    #   private-key: ${WEWORK_CORP3_PRIVATE_KEY:}
+    #   enabled: ${WEWORK_CORP3_ENABLED:true}
+

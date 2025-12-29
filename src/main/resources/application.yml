@@ -1,0 +1,92 @@
+mns:
+  accountendpoing: ${ALIYUN_MNS_ENDPOINT:http://1689796288110055.mns.cn-shanghai-internal.aliyuncs.com}
+  accesskeyid: ${ALIYUN_MNS_ACCESS_KEY:}
+  accesskeysecret: ${ALIYUN_MNS_ACCESS_SECRET:}
+  queueName: ${ALIYUN_MNS_QUEUE_NAME:houyi-msgs}
+
+spring:
+  application:
+    name: houyi
+  servlet:
+    multipart:
+      max-file-size: 2048000
+      max-request-size: 2048000
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        format_sql: true
+        show_sql: false
+        dialect: org.hibernate.dialect.MySQL5InnoDBDialect
+
+server:
+  port: ${SERVER_PORT:8080}
+
+management:
+  endpoints:
+    health:
+      show-details: always
+    web:
+      exposure:
+        include: "*"
+      base-path: /houyi-eye
+
+log:
+  path: ${LOG_PATH:/tmp/}
+
+# 线程池配置
+thread-pool:
+  download:
+    core-size: ${THREAD_POOL_DOWNLOAD_CORE_SIZE:8}
+    max-size: ${THREAD_POOL_DOWNLOAD_MAX_SIZE:100}
+    queue-capacity: ${THREAD_POOL_DOWNLOAD_QUEUE_CAPACITY:10000}
+  oss:
+    core-size: ${THREAD_POOL_OSS_CORE_SIZE:4}
+    max-size: ${THREAD_POOL_OSS_MAX_SIZE:60}
+    queue-capacity: ${THREAD_POOL_OSS_QUEUE_CAPACITY:10000}
+  mns:
+    core-size: ${THREAD_POOL_MNS_CORE_SIZE:16}
+    max-size: ${THREAD_POOL_MNS_MAX_SIZE:64}
+    queue-capacity: ${THREAD_POOL_MNS_QUEUE_CAPACITY:1280}
+
+# 后羿配置
+houyi:
+  aliyun:
+    bucket: ${ALIYUN_OSS_BUCKET:wechat-monitoring}
+    oss-endpoint: ${ALIYUN_OSS_ENDPOINT:oss-cn-shanghai.aliyuncs.com}
+    oss-access-key: ${ALIYUN_OSS_ACCESS_KEY:}
+    oss-access-secret: ${ALIYUN_OSS_ACCESS_SECRET:}
+    key: ${ALIYUN_ACCESS_KEY:}
+    secret: ${ALIYUN_ACCESS_SECRET:}
+  download:
+    temp-path: /tmp/
+    max-retry-count: 16
+    big-file-timeout-ms: 300000
+
+# RocketMQ 5.0 配置（统一使用 TCP 协议）
+rocketmq:
+  nameSrvAddr: ${ROCKETMQ_NAME_SRV_ADDR:}
+  topic: ${ROCKETMQ_TOPIC:wechat-archive-msg}
+  retry-topic: ${ROCKETMQ_RETRY_TOPIC:wechat-archive-retry}
+  groupId: ${ROCKETMQ_GROUP_ID:}
+  retry-group-id: ${ROCKETMQ_RETRY_GROUP_ID:}
+  tag: ${ROCKETMQ_TAG:ChatDataJava}
+  namespace: ${ROCKETMQ_NAMESPACE:}
+  public-endpoint: ${ROCKETMQ_PUBLIC_ENDPOINT:}
+  retry-delay-ms: ${ROCKETMQ_RETRY_DELAY_MS:30000}
+
+# 企业微信配置（从独立文件导入）
+spring:
+  config:
+    import:
+      - optional:classpath:wework-corps.yml
+
+# 保持向后兼容
+aliyun:
+  bucket: ${ALIYUN_OSS_BUCKET:wechat-monitoring}
+  oss_end_point: ${ALIYUN_OSS_ENDPOINT:oss-cn-shanghai.aliyuncs.com}
+  oss_access_key: ${ALIYUN_OSS_ACCESS_KEY:}
+  oss_access_secret: ${ALIYUN_OSS_ACCESS_SECRET:}
+  key: ${ALIYUN_ACCESS_KEY:}
+  secret: ${ALIYUN_ACCESS_SECRET:}

@@ -1,0 +1,56 @@
+[Unit]
+Description=Houyi WeChat Archive Service
+Documentation=https://github.com/your-org/houyi
+After=network.target mysql.service redis.service
+
+[Service]
+Type=simple
+User=houyi
+Group=houyi
+WorkingDirectory=/opt/houyi
+
+# 环境变量文件
+EnvironmentFile=/opt/houyi/.env
+
+# Java 路径
+Environment="JAVA_HOME=/usr/lib/jvm/java-21-openjdk"
+Environment="PATH=/usr/lib/jvm/java-21-openjdk/bin:/usr/local/bin:/usr/bin:/bin"
+
+# JVM 参数
+Environment="JVM_OPTS=-Xms2g -Xmx4g -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/var/log/houyi/heap_dump.hprof"
+
+# Spring Profile
+Environment="SPRING_PROFILES_ACTIVE=prod"
+
+# 日志目录
+Environment="LOG_PATH=/var/log/houyi"
+
+# 启动命令
+ExecStart=/usr/lib/jvm/java-21-openjdk/bin/java ${JVM_OPTS} \
+    -Dspring.profiles.active=${SPRING_PROFILES_ACTIVE} \
+    -Dlog.path=${LOG_PATH} \
+    -jar /opt/houyi/houyi-0.0.1-SNAPSHOT.jar
+
+# 停止命令
+ExecStop=/bin/kill -SIGTERM $MAINPID
+
+# 重启策略
+Restart=on-failure
+RestartSec=10s
+
+# 资源限制
+LimitNOFILE=65536
+LimitNPROC=4096
+
+# 日志
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=houyi
+
+# 安全设置
+PrivateTmp=true
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target
+

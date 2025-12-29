@@ -1,0 +1,25 @@
+mns:
+  accountendpoing: ${ALIYUN_MNS_ENDPOINT:http://1689796288110055.mns.cn-shanghai.aliyuncs.com}
+
+spring:
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://${MYSQL_HOST:127.0.0.1}:${MYSQL_PORT:3306}/${MYSQL_DATABASE:message}?characterEncoding=UTF-8
+    username: ${MYSQL_USERNAME:root}
+    password: ${MYSQL_PASSWORD:}
+  redis:
+    host: ${REDIS_HOST:127.0.0.1}
+    port: ${REDIS_PORT:6379}
+    password: ${REDIS_PASSWORD:}
+
+# RocketMQ 5.0 配置（开发环境）
+rocketmq:
+  nameSrvAddr: ${ROCKETMQ_NAME_SRV_ADDR:}
+  topic: ${ROCKETMQ_TOPIC:chat_data_test}
+  retry-topic: ${ROCKETMQ_RETRY_TOPIC:chat_data_retry}
+  tag: ${ROCKETMQ_TAG:msg}
+  groupId: ${ROCKETMQ_GROUP_ID:GID_tcp_chatdata_test}
+  retry-group-id: ${ROCKETMQ_RETRY_GROUP_ID:GID_tcp_chatdata_retry}
+
+# corpUrl 已废弃，企业配置现在从本地配置文件读取
+# corpUrl: ${CORP_API_URL:}
