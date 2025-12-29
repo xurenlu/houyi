@@ -421,10 +421,10 @@ HOUYI_MQ_RETRY_ACCESS_SECRET=your_secret
 
 ```bash
 # 查看日志
-tail -f /var/log/houyi/houyi.log | grep "dayu_pushed_msg"
+tail -f /var/log/houyi/houyi.log | grep "houyi_pushed_msg"
 
 # 应该看到类似输出:
-# [INFO] dayu_pushed_msg{service=common} count=1
+# [INFO] houyi_pushed_msg{service=common} count=1
 ```
 
 ### 测试 HTTP Consumer
@@ -443,11 +443,11 @@ tail -f /var/log/houyi/houyi.log | grep "MqHttp"
 
 系统暴露了以下 Prometheus 指标:
 
-- `dayu_pushed_msg_total{service="common"}`: 发送到 RocketMQ 的消息数
-- `dayu_pushed_msg_total{service="mns"}`: 发送到 MNS 的消息数
-- `dayu_push_cost_seconds{type="rocket"}`: RocketMQ 发送耗时
-- `dayu_push_cost_seconds{type="mns"}`: MNS 发送耗时
-- `dayu_shard_key_total`: ShardingKey 使用统计
+- `houyi_pushed_msg_total{service="common"}`: 发送到 RocketMQ 的消息数
+- `houyi_pushed_msg_total{service="mns"}`: 发送到 MNS 的消息数
+- `houyi_push_cost_seconds{type="rocket"}`: RocketMQ 发送耗时
+- `houyi_push_cost_seconds{type="mns"}`: MNS 发送耗时
+- `houyi_shard_key_total`: ShardingKey 使用统计
 
 访问: `http://localhost:8080/houyi-eye/prometheus`
 

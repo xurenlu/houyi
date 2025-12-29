@@ -375,10 +375,10 @@ CREATE TABLE md5_index (
 
 | 指标名称 | 类型 | 说明 |
 |---------|------|------|
-| `dayu_pushed_msg_total` | Counter | 推送消息总数 |
-| `dayu_push_cost_seconds` | Summary | 推送耗时 |
-| `dayu_shard_key_total` | Counter | ShardingKey 使用统计 |
-| `dayu_mns_real_pushed` | Counter | MNS 实际推送数 |
+| `houyi_pushed_msg_total` | Counter | 推送消息总数 |
+| `houyi_push_cost_seconds` | Summary | 推送耗时 |
+| `houyi_shard_key_total` | Counter | ShardingKey 使用统计 |
+| `houyi_mns_real_pushed` | Counter | MNS 实际推送数 |
 
 ### Actuator 端点
 

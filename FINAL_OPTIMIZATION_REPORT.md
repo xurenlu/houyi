@@ -113,7 +113,7 @@ public class ThreadPoolConfig {
 
 **解决方案**: 使用 `@ConfigurationProperties`
 ```java
-@ConfigurationProperties(prefix = "dayu")
+@ConfigurationProperties(prefix = "houyi")
 public class HouyiProperties {
     private AliyunConfig aliyun;
     private RocketMqConfig rocketmq;
@@ -132,7 +132,7 @@ thread-pool:
     queue-capacity: 10000
 
 # 后羿配置
-dayu:
+houyi:
   aliyun:
     bucket: wechat-monitoring
     oss-endpoint: oss-cn-shanghai.aliyuncs.com

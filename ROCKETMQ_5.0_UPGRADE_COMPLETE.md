@@ -214,7 +214,7 @@ ROCKETMQ_RETRY_DELAY_MS=30000
 ### 编译测试
 
 ```bash
-cd /Users/rocky/Sites/dayu
+cd /path/to/houyi
 mvn clean compile
 ```
 
