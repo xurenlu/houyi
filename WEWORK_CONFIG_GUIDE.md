@@ -43,9 +43,46 @@ WEWORK_CORP2_ENABLED=true
 mvn spring-boot:run
 ```
 
-### 方式 2: 直接修改配置文件
+### 方式 2: 使用私钥文件（推荐）
 
-1. **编辑 `src/main/resources/wework-corps.yml`**
+1. **将私钥文件放在 `src/main/resources/keys/` 目录**
+```bash
+# 创建目录
+mkdir -p src/main/resources/keys
+
+# 复制私钥文件
+cp /path/to/your/private-key.pem src/main/resources/keys/corp1-private-key.pem
+
+# 设置文件权限
+chmod 600 src/main/resources/keys/*.pem
+```
+
+2. **编辑 `src/main/resources/wework-corps.yml`**
+```yaml
+wework:
+  corps:
+    - corp-id: ww1234567890abcdef
+      corp-name: 我的企业
+      secret: your_secret_here
+      private-key-file: classpath:keys/corp1-private-key.pem  # 从文件读取
+      enabled: true
+
+    - corp-id: ww0987654321fedcba
+      corp-name: 另一个企业
+      secret: another_secret
+      private-key-file: /etc/houyi/keys/corp2-private-key.pem  # 绝对路径
+      enabled: true
+```
+
+3. **启动应用**
+```bash
+mvn spring-boot:run
+```
+
+### 方式 3: 直接配置私钥内容
+
+如果私钥较短或用于测试，也可以直接在配置文件中写入：
+
 ```yaml
 wework:
   corps:
@@ -57,20 +94,6 @@ wework:
         MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC...
         -----END PRIVATE KEY-----
       enabled: true
-
-    - corp-id: ww0987654321fedcba
-      corp-name: 另一个企业
-      secret: another_secret
-      private-key: |
-        -----BEGIN PRIVATE KEY-----
-        ...
-        -----END PRIVATE KEY-----
-      enabled: true
-```
-
-2. **启动应用**
-```bash
-mvn spring-boot:run
 ```
 
 ---
@@ -84,19 +107,43 @@ mvn spring-boot:run
 | `corp-id` | ✅ | 企业微信 ID | `ww1234567890abcdef` |
 | `corp-name` | ✅ | 企业名称（用于日志显示） | `我的企业` |
 | `secret` | ✅ | 会话存档 Secret | `your_secret_here` |
-| `private-key` | ✅ | 会话存档私钥（RSA） | `-----BEGIN PRIVATE KEY-----\n...` |
+| `private-key` | ⚠️ | 会话存档私钥内容 | `-----BEGIN PRIVATE KEY-----\n...` |
+| `private-key-file` | ⚠️ | 私钥文件路径 | `classpath:keys/xxx.pem` 或 `/path/to/key.pem` |
 | `enabled` | ❌ | 是否启用（默认 true） | `true` / `false` |
 
-### 私钥格式说明
+**注意**: `private-key` 和 `private-key-file` 二选一：
+- 如果同时配置，优先使用 `private-key`
+- 推荐使用 `private-key-file`，更易于管理
 
-私钥支持两种格式：
+### 私钥配置方式
 
-**1. 单行格式（使用 `\n` 换行）**
+#### 方式 1: 使用私钥文件（推荐 ✅）
+
+**优点**: 
+- 易于管理和更新
+- 不会让配置文件过长
+- 更安全（文件权限控制）
+
+**配置示例**:
+```yaml
+# 从 classpath 读取（开发环境）
+private-key-file: classpath:keys/corp1-private-key.pem
+
+# 从文件系统读取（生产环境推荐）
+private-key-file: /etc/houyi/keys/corp1-private-key.pem
+
+# 使用环境变量
+private-key-file: ${WEWORK_CORP1_PRIVATE_KEY_FILE}
+```
+
+#### 方式 2: 直接配置私钥内容
+
+**单行格式（使用 `\n` 换行）**:
 ```yaml
 private-key: "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBg...\n-----END PRIVATE KEY-----"
 ```
 
-**2. 多行格式（推荐）**
+**多行格式（YAML 多行字符串）**:
 ```yaml
 private-key: |
   -----BEGIN PRIVATE KEY-----

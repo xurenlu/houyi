@@ -4,10 +4,17 @@ import com.ruoran.houyi.config.WeWorkCorpProperties;
 import com.ruoran.houyi.model.CorpInfo;
 import com.ruoran.houyi.repo.CorplistRepo;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
+import org.springframework.util.FileCopyUtils;
 
 import jakarta.annotation.PostConstruct;
-import jakarta.annotation.Resource;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.Reader;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -22,10 +29,10 @@ import java.util.stream.Collectors;
 @Slf4j
 public class CorpConfigService {
 
-    @Resource
+    @jakarta.annotation.Resource
     private WeWorkCorpProperties weWorkCorpProperties;
 
-    @Resource
+    @jakarta.annotation.Resource
     private CorplistRepo corplistRepo;
 
     /**
@@ -77,11 +84,63 @@ public class CorpConfigService {
         // 更新配置信息
         corpInfo.setCorpname(corpConfig.getCorpName());
         corpInfo.setSecret(corpConfig.getSecret());
-        corpInfo.setPrikey(corpConfig.getPrivateKey());
+        
+        // 获取私钥（支持从文件读取）
+        String privateKey = getPrivateKey(corpConfig);
+        corpInfo.setPrikey(privateKey);
+        
         corpInfo.setStatus(corpConfig.getEnabled() ? 1L : 0L);
 
         corplistRepo.save(corpInfo);
         log.info("企业配置已保存: {} - {}", corpId, corpConfig.getCorpName());
+    }
+
+    /**
+     * 获取私钥内容
+     * 优先使用 privateKey 字段，如果为空则从 privateKeyFile 读取
+     */
+    private String getPrivateKey(WeWorkCorpProperties.CorpConfig corpConfig) {
+        // 优先使用直接配置的私钥
+        if (corpConfig.getPrivateKey() != null && !corpConfig.getPrivateKey().trim().isEmpty()) {
+            return corpConfig.getPrivateKey();
+        }
+
+        // 从文件读取私钥
+        if (corpConfig.getPrivateKeyFile() != null && !corpConfig.getPrivateKeyFile().trim().isEmpty()) {
+            try {
+                String privateKeyFile = corpConfig.getPrivateKeyFile().trim();
+                Resource resource;
+                
+                if (privateKeyFile.startsWith("classpath:")) {
+                    // 从 classpath 读取
+                    String path = privateKeyFile.substring("classpath:".length());
+                    resource = new ClassPathResource(path);
+                    log.debug("从 classpath 读取私钥文件: {}", path);
+                } else {
+                    // 从文件系统读取
+                    resource = new FileSystemResource(privateKeyFile);
+                    log.debug("从文件系统读取私钥文件: {}", privateKeyFile);
+                }
+
+                if (!resource.exists()) {
+                    log.error("私钥文件不存在: {}", privateKeyFile);
+                    throw new IllegalArgumentException("私钥文件不存在: " + privateKeyFile);
+                }
+
+                try (Reader reader = new InputStreamReader(resource.getInputStream(), StandardCharsets.UTF_8)) {
+                    String content = FileCopyUtils.copyToString(reader);
+                    log.info("成功从文件读取私钥: {} (corpId: {})", privateKeyFile, corpConfig.getCorpId());
+                    return content;
+                }
+            } catch (IOException e) {
+                log.error("读取私钥文件失败: {}", corpConfig.getPrivateKeyFile(), e);
+                throw new RuntimeException("读取私钥文件失败: " + corpConfig.getPrivateKeyFile(), e);
+            }
+        }
+
+        // 两者都没有配置
+        log.error("企业 {} 未配置私钥，请配置 privateKey 或 privateKeyFile", corpConfig.getCorpId());
+        throw new IllegalArgumentException("企业 " + corpConfig.getCorpId() + " 未配置私钥");
     }
 
     /**

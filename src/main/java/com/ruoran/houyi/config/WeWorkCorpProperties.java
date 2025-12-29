@@ -44,9 +44,16 @@ public class WeWorkCorpProperties {
         private String secret;
 
         /**
-         * 会话存档私钥
+         * 会话存档私钥（直接配置私钥内容）
          */
         private String privateKey;
+
+        /**
+         * 会话存档私钥文件路径（支持 classpath: 和文件系统路径）
+         * 例如: classpath:keys/corp1-private-key.pem 或 /etc/houyi/keys/corp1.pem
+         * 如果同时配置了 privateKey 和 privateKeyFile，优先使用 privateKey
+         */
+        private String privateKeyFile;
 
         /**
          * 是否启用 (默认启用)

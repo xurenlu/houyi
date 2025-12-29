@@ -60,3 +60,7 @@ hs_err_pid*
 
 # Spring Boot
 spring-boot-*.log
+
+# 企业微信私钥文件
+src/main/resources/keys/*.pem
+src/main/resources/keys/*.key
