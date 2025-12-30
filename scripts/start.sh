@@ -24,7 +24,7 @@ LOG_DIR="${LOG_PATH:-/var/log/houyi}"
 LOG_FILE="${LOG_DIR}/${APP_NAME}.log"
 
 # JVM 参数
-JVM_OPTS="${JVM_OPTS:--Xms2g -Xmx4g -XX:+UseG1GC -XX:MaxGCPauseMillis=200}"
+JVM_OPTS="${JVM_OPTS:--Xms2g -Xmx2g -XX:+UseG1GC -XX:MaxGCPauseMillis=200}"
 
 # Spring Profile
 SPRING_PROFILE="${SPRING_PROFILES_ACTIVE:-prod}"

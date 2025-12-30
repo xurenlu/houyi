@@ -50,6 +50,8 @@ logs/
 .env.local
 .env.*.local
 *.env
+env.prod
+env.*
 
 # Java
 *.class

@@ -19,19 +19,6 @@
     </properties>
     <dependencies>
 
-        <dependency>
-            <groupId>com.aliyun.mns</groupId>
-            <artifactId>aliyun-sdk-mns</artifactId>
-            <version>1.1.9.1</version>
-            <exclusions>
-                <!-- 排除旧的 javax.servlet 依赖 -->
-                <exclusion>
-                    <groupId>javax.servlet</groupId>
-                    <artifactId>servlet-api</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-
         <!-- Micrometer Prometheus 由 Spring Boot 管理 -->
         <dependency>
             <groupId>io.micrometer</groupId>

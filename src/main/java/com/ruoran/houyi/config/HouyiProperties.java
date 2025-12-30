@@ -25,11 +25,6 @@ public class HouyiProperties {
     private RocketMqConfig rocketmq = new RocketMqConfig();
 
     /**
-     * MNS配置
-     */
-    private MnsConfig mns = new MnsConfig();
-
-    /**
      * 下载配置
      */
     private DownloadConfig download = new DownloadConfig();
@@ -58,17 +53,6 @@ public class HouyiProperties {
         private String tag;
         private String accessKeyId;
         private String accessKeySecret;
-    }
-
-    /**
-     * MNS配置
-     */
-    @Data
-    public static class MnsConfig {
-        private String accountEndpoint;
-        private String accessKeyId;
-        private String accessKeySecret;
-        private String queueName;
     }
 
     /**

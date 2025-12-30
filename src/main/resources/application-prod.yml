@@ -1,9 +1,3 @@
-mns:
-  accountendpoing: ${ALIYUN_MNS_ENDPOINT:http://1689796288110055.mns.cn-shanghai-internal.aliyuncs.com}
-  accesskeyid: ${ALIYUN_MNS_ACCESS_KEY:}
-  accesskeysecret: ${ALIYUN_MNS_ACCESS_SECRET:}
-  queueName: ${ALIYUN_MNS_QUEUE_NAME:houyi-msgs}
-
 spring:
   datasource:
     hikari:
@@ -18,6 +12,7 @@ spring:
     host: ${REDIS_HOST:localhost}
     port: ${REDIS_PORT:6379}
     password: ${REDIS_PASSWORD:}
+    database: ${REDIS_DATABASE:3}
 
 log:
   path: ${LOG_PATH:/var/log/houyi/}

@@ -35,15 +35,6 @@ public class ThreadPoolConfig {
     @Value("${thread-pool.oss.queue-capacity:10000}")
     private int ossQueueCapacity;
 
-    @Value("${thread-pool.mns.core-size:16}")
-    private int mnsCoreSize;
-
-    @Value("${thread-pool.mns.max-size:64}")
-    private int mnsMaxSize;
-
-    @Value("${thread-pool.mns.queue-capacity:1280}")
-    private int mnsQueueCapacity;
-
     /**
      * 下载线程池
      */
@@ -83,27 +74,6 @@ public class ThreadPoolConfig {
         
         log.info("OSS线程池初始化完成: core={}, max={}, queue={}", 
             ossCoreSize, ossMaxSize, ossQueueCapacity);
-        return executor;
-    }
-
-    /**
-     * MNS推送线程池
-     */
-    @Bean("mnsExecutor")
-    public ThreadPoolTaskExecutor mnsExecutor() {
-        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
-        executor.setCorePoolSize(mnsCoreSize);
-        executor.setMaxPoolSize(mnsMaxSize);
-        executor.setQueueCapacity(mnsQueueCapacity);
-        executor.setKeepAliveSeconds(360);
-        executor.setThreadNamePrefix("mns-");
-        executor.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
-        executor.setWaitForTasksToCompleteOnShutdown(true);
-        executor.setAwaitTerminationSeconds(60);
-        executor.initialize();
-        
-        log.info("MNS线程池初始化完成: core={}, max={}, queue={}", 
-            mnsCoreSize, mnsMaxSize, mnsQueueCapacity);
         return executor;
     }
 }

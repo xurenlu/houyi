@@ -4,7 +4,6 @@ import com.aliyun.openservices.ons.api.Message;
 import com.aliyun.openservices.ons.api.SendResult;
 import com.aliyun.openservices.ons.api.bean.ProducerBean;
 import com.aliyun.openservices.ons.api.exception.ONSClientException;
-import com.ruoran.houyi.service.MnsService;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Tags;
 import lombok.extern.slf4j.Slf4j;
@@ -33,12 +32,9 @@ public class HouyiTcpConstructionMessageProduct {
     @Resource
     private MeterRegistry meterRegistry;
 
-    @Resource
-    private MnsService mnsService;
-
     /**
      * 发送主消息（构建完成的消息）
-     * 同时发送到 RocketMQ 和 MNS
+     * 发送到 RocketMQ
      * 
      * @param message 消息内容
      * @param messageKey 消息 Key
@@ -51,14 +47,6 @@ public class HouyiTcpConstructionMessageProduct {
         stopWatch.stop();
         meterRegistry.summary("houyi_push_cost", Tags.of("type", "rocketmq"))
                 .record(stopWatch.getTotalTimeMillis());
-
-        // 发送到 MNS（备份）
-        StopWatch stopWatch2 = new StopWatch();
-        stopWatch2.start();
-        sendToMns(message);
-        stopWatch2.stop();
-        meterRegistry.summary("houyi_push_cost", Tags.of("type", "mns"))
-                .record(stopWatch2.getTotalTimeMillis());
     }
     
     /**
@@ -156,21 +144,6 @@ public class HouyiTcpConstructionMessageProduct {
         
         meterRegistry.counter("houyi_shard_key", Tags.of("source", "random")).increment();
         return String.valueOf(getRandomShardingKey());
-    }
-    
-    /**
-     * 发送消息到 MNS（备份队列）
-     * 
-     * @param message 消息内容
-     */
-    private void sendToMns(String message) {
-        try {
-            mnsService.push(message);
-            meterRegistry.counter("houyi_pushed_msg", Tags.of("service", "mns")).increment();
-        } catch (Exception e) {
-            log.error("MNS 消息发送失败", e);
-            // MNS 失败不影响主流程
-        }
     }
     
     /**

@@ -1,9 +1,3 @@
-mns:
-  accountendpoing: ${ALIYUN_MNS_ENDPOINT:http://1689796288110055.mns.cn-shanghai-internal.aliyuncs.com}
-  accesskeyid: ${ALIYUN_MNS_ACCESS_KEY:}
-  accesskeysecret: ${ALIYUN_MNS_ACCESS_SECRET:}
-  queueName: ${ALIYUN_MNS_QUEUE_NAME:houyi-msgs}
-
 spring:
   application:
     name: houyi
@@ -45,10 +39,6 @@ thread-pool:
     core-size: ${THREAD_POOL_OSS_CORE_SIZE:4}
     max-size: ${THREAD_POOL_OSS_MAX_SIZE:60}
     queue-capacity: ${THREAD_POOL_OSS_QUEUE_CAPACITY:10000}
-  mns:
-    core-size: ${THREAD_POOL_MNS_CORE_SIZE:16}
-    max-size: ${THREAD_POOL_MNS_MAX_SIZE:64}
-    queue-capacity: ${THREAD_POOL_MNS_QUEUE_CAPACITY:1280}
 
 # 后羿配置
 houyi:
@@ -76,8 +66,10 @@ rocketmq:
   public-endpoint: ${ROCKETMQ_PUBLIC_ENDPOINT:}
   retry-delay-ms: ${ROCKETMQ_RETRY_DELAY_MS:30000}
 
-# 企业微信配置（从独立文件导入）
+# Redis 配置（如果没有配置，使用默认值）
 spring:
+  redis:
+    database: ${REDIS_DATABASE:0}
   config:
     import:
       - optional:classpath:wework-corps.yml

@@ -23,6 +23,9 @@ public class JedisConfig {
     @Value("${spring.redis.password}")
     private String password;
 
+    @Value("${spring.redis.database:0}")
+    private Integer database;
+
     @Bean
     JedisPool jedisPool(){
         GenericObjectPoolConfig<Jedis> poolConfig = new GenericObjectPoolConfig<>();
@@ -30,9 +33,9 @@ public class JedisConfig {
         poolConfig.setMaxTotal(128);
         poolConfig.setMaxIdle(32);
         if(StringUtils.isEmpty(password)){
-            return new JedisPool(poolConfig, host, port);
+            return new JedisPool(poolConfig, host, port, database);
         }else {
-            return new JedisPool(poolConfig, host, port,0,password);
+            return new JedisPool(poolConfig, host, port, database, password);
         }
     }
 }
