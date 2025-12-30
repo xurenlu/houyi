@@ -13,6 +13,12 @@ spring:
     port: ${REDIS_PORT:6379}
     password: ${REDIS_PASSWORD:}
     database: ${REDIS_DATABASE:0}
+    lettuce:
+      pool:
+        max-active: 200
+        max-idle: 20
+        min-idle: 5
+      shutdown-timeout: 100ms
 
 log:
   path: ${LOG_PATH:/var/log/houyi/}
@@ -28,6 +34,8 @@ rocketmq:
   namespace: ${ROCKETMQ_NAMESPACE:}
   public-endpoint: ${ROCKETMQ_PUBLIC_ENDPOINT:}
   retry-delay-ms: ${ROCKETMQ_RETRY_DELAY_MS:30000}
+  dummy-consumer:
+    enabled: ${ROCKETMQ_DUMMY_CONSUMER_ENABLED:true}  # 启用 Dummy Consumer 建立订阅关系
 
 aliyun:
   bucket: ${ALIYUN_OSS_BUCKET:}

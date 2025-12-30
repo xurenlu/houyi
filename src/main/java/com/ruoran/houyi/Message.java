@@ -12,7 +12,7 @@ package com.ruoran.houyi;
 import com.tencent.wework.Finance;
 import com.tencent.wework.RSAEncrypt;
 import com.ruoran.houyi.model.OriginalMsg;
-import com.ruoran.houyi.mq.HouyiTcpConstructionMessageProduct;
+import com.ruoran.houyi.mq.MessageProducerAdapter;
 import com.ruoran.houyi.repo.Md5IndexRepo;
 import com.ruoran.houyi.repo.OriginalMsgRepo;
 import com.ruoran.houyi.service.EventBus;
@@ -98,7 +98,7 @@ public class Message extends Thread {
 
 
     @Resource
-    HouyiTcpConstructionMessageProduct tcpProduct;
+    MessageProducerAdapter messageProducerAdapter;
 
     @Value("${spring.profiles.active}")
     private String profile;
@@ -449,8 +449,8 @@ public class Message extends Thread {
             if (msgid != null) {
                 key = msgid;
             }
-            // 统一使用 TCP 协议发送消息
-            tcpProduct.send(jsonObject.toString(), key);
+            // 使用消息生产者适配器发送消息（自动选择 RocketMQ 或 Redis）
+            messageProducerAdapter.send(jsonObject.toString(), key);
         }
         return seq;
     }

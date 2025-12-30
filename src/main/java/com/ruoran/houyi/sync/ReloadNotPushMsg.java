@@ -3,7 +3,7 @@ package com.ruoran.houyi.sync;
 import com.ruoran.houyi.DownloadThreadKeeper;
 import com.ruoran.houyi.model.CorpInfo;
 import com.ruoran.houyi.model.OriginalMsg;
-import com.ruoran.houyi.mq.HouyiTcpConstructionMessageProduct;
+import com.ruoran.houyi.mq.MessageProducerAdapter;
 import com.ruoran.houyi.repo.CorplistRepo;
 import com.ruoran.houyi.repo.OriginalMsgRepo;
 import com.ruoran.houyi.service.EventBus;
@@ -43,7 +43,7 @@ public class ReloadNotPushMsg {
     private Map<String,String> secretMap = new HashMap<>();
 
     @Resource
-    HouyiTcpConstructionMessageProduct tcpProducer;
+    MessageProducerAdapter messageProducerAdapter;
 
     @Resource
     DownloadThreadKeeper downloadThreadKeeper;
@@ -88,7 +88,7 @@ public class ReloadNotPushMsg {
                 jsonObject.put("secret",secret);
                 jsonObject.put("push_at",msg.getPushAt());
                 try {
-                    tcpProducer.sendDelayMessage(jsonObject.toString(), msg.getMsgId());
+                    messageProducerAdapter.sendDelayMessage(jsonObject.toString(), msg.getMsgId());
                     if(msg.getPushAt() == null){
                         msg.setPushAt(-1L);
                     }else{
@@ -126,7 +126,7 @@ public class ReloadNotPushMsg {
                     jsonObject.put("big_file",true);
                     jsonObject.put("push_at",msg.getPushAt());
                     try {
-                        tcpProducer.sendDelayMessage(jsonObject.toString(), msg.getMsgId());
+                        messageProducerAdapter.sendDelayMessage(jsonObject.toString(), msg.getMsgId());
                         msg.setPushAt( msg.getPushAt()-1);
                         originalMsgRepo.save(msg);
                     } catch (Exception e) {

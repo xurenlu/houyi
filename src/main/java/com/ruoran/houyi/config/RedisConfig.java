@@ -1,5 +1,7 @@
 package com.ruoran.houyi.config;
 
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.CachingConfigurerSupport;
 import org.springframework.cache.annotation.EnableCaching;
@@ -8,8 +10,10 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.cache.RedisCacheConfiguration;
 import org.springframework.data.redis.cache.RedisCacheManager;
-import org.springframework.data.redis.cache.RedisCacheWriter;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
+import org.springframework.data.redis.connection.RedisStandaloneConfiguration;
+import org.springframework.data.redis.connection.lettuce.LettuceClientConfiguration;
+import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
 import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer;
 import org.springframework.data.redis.serializer.RedisSerializationContext;
 
@@ -23,6 +27,37 @@ import java.time.Duration;
 @EnableCaching
 @Configuration
 public class RedisConfig extends CachingConfigurerSupport {
+    
+    @Value("${spring.redis.host:localhost}")
+    private String host;
+    
+    @Value("${spring.redis.port:6379}")
+    private int port;
+    
+    @Value("${spring.redis.password:}")
+    private String password;
+    
+    @Value("${spring.redis.database:0}")
+    private int database;
+    
+    @Bean
+    public RedisConnectionFactory redisConnectionFactory() {
+        RedisStandaloneConfiguration config = new RedisStandaloneConfiguration();
+        config.setHostName(host);
+        config.setPort(port);
+        config.setDatabase(database);
+        if (StringUtils.isNotEmpty(password)) {
+            config.setPassword(password);
+        }
+        
+        // 配置 Lettuce 使用 RESP2 协议，避免 NOAUTH 错误
+        LettuceClientConfiguration clientConfig = LettuceClientConfiguration.builder()
+                .commandTimeout(Duration.ofSeconds(2))
+                .build();
+        
+        LettuceConnectionFactory factory = new LettuceConnectionFactory(config, clientConfig);
+        return factory;
+    }
     @Bean
     public KeyGenerator wiselyKeyGenerator()
     {

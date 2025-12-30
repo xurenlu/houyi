@@ -5,7 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tencent.wework.Finance;
 import com.ruoran.houyi.model.Md5Index;
 import com.ruoran.houyi.model.OriginalMsg;
-import com.ruoran.houyi.mq.HouyiTcpConstructionMessageProduct;
+import com.ruoran.houyi.mq.MessageProducerAdapter;
 import com.ruoran.houyi.repo.Md5IndexRepo;
 import com.ruoran.houyi.repo.OriginalMsgRepo;
 import com.ruoran.houyi.constants.AppConstants;
@@ -57,7 +57,7 @@ public class MsgHandler {
     DownloadThreadKeeper downloadThreadKeeper;
 
     @Resource
-    HouyiTcpConstructionMessageProduct tcpProducer;
+    MessageProducerAdapter messageProducerAdapter;
 
     @Resource
     JedisPool jedisPool;
@@ -65,9 +65,6 @@ public class MsgHandler {
     ObjectMapper objectMapper;
 
     String secret;
-
-    @Resource
-    HouyiTcpConstructionMessageProduct tcpProduct;
 
     @Value("${spring.profiles.active}")
     protected String profile;
@@ -370,7 +367,7 @@ public class MsgHandler {
                 /**
                  * 网络有波动，先发进 rocket,一分钟后重试
                  */
-                RetryUtil.sendRetryMessage(wholeRootObject, tcpProducer, 
+                RetryUtil.sendRetryMessage(wholeRootObject, messageProducerAdapter, 
                     getEventBus(), this.getSecret(), getProfile(), TRY_COUNT);
                 return false;
             }
@@ -378,7 +375,7 @@ public class MsgHandler {
             if (ret != 0) {
                 log.error("获取失败下载句柄失败,corpID:{},msgId:{},sdkFileId:{},returnValue:{}", this.corpid, msgId, sdkFileId, ret);
                 object.put("down_fail_at", System.currentTimeMillis());
-                RetryUtil.sendRetryMessage(wholeRootObject, tcpProducer, 
+                RetryUtil.sendRetryMessage(wholeRootObject, messageProducerAdapter, 
                     getEventBus(), this.getSecret(), getProfile(), TRY_COUNT);
                 return false;
             }
@@ -448,7 +445,7 @@ public class MsgHandler {
                         eventBus.getRocketRetrySucc().incrementAndGet();
                     }
                     if (!object.has("ossPath")) {
-                        RetryUtil.sendRetryMessage(wholeRootObject, tcpProducer, 
+                        RetryUtil.sendRetryMessage(wholeRootObject, messageProducerAdapter, 
                             getEventBus(), this.getSecret(), getProfile(), TRY_COUNT);
                     }
                     FileUtil.safeDelete(localPath);
@@ -553,11 +550,11 @@ public class MsgHandler {
                         int tryCount = object.getInt("tryCount");
                         if (tryCount < TRY_COUNT) {
                             object.put("tryCount", tryCount + 1);
-                            tcpProducer.sendDelayMessage(object.toString(), msgId);
+                            messageProducerAdapter.sendDelayMessage(object.toString(), msgId);
                         }
                     } else {
                         object.put("tryCount", 1);
-                        tcpProducer.sendDelayMessage(object.toString(), msgId);
+                        messageProducerAdapter.sendDelayMessage(object.toString(), msgId);
                     }
                 } catch (Exception e) {
                     log.error("尝试用 rocketMq记录下载错误的，失败了");
@@ -584,11 +581,11 @@ public class MsgHandler {
                                 int tryCount = object.getInt("tryCount");
                                 if (tryCount < TRY_COUNT) {
                                     object.put("tryCount", tryCount + 1);
-                                    tcpProducer.sendDelayMessage(object.toString(), tag);
+                                    messageProducerAdapter.sendDelayMessage(object.toString(), tag);
                                 }
                             } else {
                                 object.put("tryCount", 1);
-                                tcpProducer.sendDelayMessage(object.toString(), tag);
+                                messageProducerAdapter.sendDelayMessage(object.toString(), tag);
                             }
                         } catch (Exception e) {
                             log.error("尝试用 rocketMq记录下载错误的，失败了");
@@ -680,11 +677,11 @@ public class MsgHandler {
                                     int tryCount = object.getInt("tryCount");
                                     if (tryCount < TRY_COUNT) {
                                         object.put("tryCount", tryCount + 1);
-                                        tcpProducer.sendDelayMessage(object.toString(), tag);
+                                        messageProducerAdapter.sendDelayMessage(object.toString(), tag);
                                     }
                                 } else {
                                     object.put("tryCount", 1);
-                                    tcpProducer.sendDelayMessage(object.toString(), tag);
+                                    messageProducerAdapter.sendDelayMessage(object.toString(), tag);
                                 }
                             }
                         }
@@ -831,7 +828,7 @@ public class MsgHandler {
                 }
                 // 统一使用 TCP 协议发送消息
                 {
-                    tcpProduct.send(jsonObject.toString(), key);
+                    messageProducerAdapter.send(jsonObject.toString(), key);
                 }
                 originalMsg.setPushAt(System.currentTimeMillis());
             }

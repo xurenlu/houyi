@@ -14,6 +14,9 @@ spring:
         show_sql: false
         dialect: org.hibernate.dialect.MySQLDialect
   redis:
+    host: ${REDIS_HOST:127.0.0.1}
+    port: ${REDIS_PORT:6379}
+    password: ${REDIS_PASSWORD:}
     database: ${REDIS_DATABASE:0}
   config:
     import:
@@ -70,6 +73,21 @@ rocketmq:
   namespace: ${ROCKETMQ_NAMESPACE:}
   public-endpoint: ${ROCKETMQ_PUBLIC_ENDPOINT:}
   retry-delay-ms: ${ROCKETMQ_RETRY_DELAY_MS:30000}
+
+# Redis 消息队列配置（替代 RocketMQ）
+redis:
+  mq:
+    enabled: ${REDIS_MQ_ENABLED:true}  # 设置为 true 启用 Redis MQ，false 使用 RocketMQ
+    topic: ${REDIS_MQ_TOPIC:mq:topic:main}
+    retry-topic: ${REDIS_MQ_RETRY_TOPIC:mq:topic:retry}
+    delay-queue-key: ${REDIS_MQ_DELAY_QUEUE_KEY:mq:delay:queue}
+    consumer-group: ${REDIS_MQ_CONSUMER_GROUP:houyi-consumer-group}
+    retry-consumer-group: ${REDIS_MQ_RETRY_CONSUMER_GROUP:houyi-retry-consumer-group}
+    tag: ${REDIS_MQ_TAG:default}
+    retry-delay-ms: ${REDIS_MQ_RETRY_DELAY_MS:30000}
+    batch-size: ${REDIS_MQ_BATCH_SIZE:10}
+    poll-interval-ms: ${REDIS_MQ_POLL_INTERVAL_MS:1000}
+    delay-scan-interval-ms: ${REDIS_MQ_DELAY_SCAN_INTERVAL_MS:1000}
 
 # 保持向后兼容
 aliyun:

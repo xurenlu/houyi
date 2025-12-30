@@ -1,6 +1,6 @@
 package com.ruoran.houyi.utils;
 
-import com.ruoran.houyi.mq.HouyiTcpConstructionMessageProduct;
+import com.ruoran.houyi.mq.MessageProducerAdapter;
 import com.ruoran.houyi.service.EventBus;
 import lombok.extern.slf4j.Slf4j;
 import org.json.JSONObject;
@@ -27,7 +27,7 @@ public class RetryUtil {
      * @param maxTryCount     最大重试次数
      */
     public static void sendRetryMessage(JSONObject wholeRootObject, 
-                                       HouyiTcpConstructionMessageProduct producer,
+                                       MessageProducerAdapter producer,
                                        EventBus eventBus, String secret, 
                                        String profile, int maxTryCount) {
         try {

@@ -141,8 +141,8 @@ public class MixedHandler extends MsgHandler {
             if(StringUtils.isEmpty(key)){
                 key = UUID.randomUUID().toString();
             }
-            // 统一使用 TCP 协议发送消息
-            tcpProduct.send(object.toString(), key);
+            // 使用消息生产者适配器发送消息（自动选择 RocketMQ 或 Redis）
+            messageProducerAdapter.send(object.toString(), key);
             originalMsgRepo.save(originalMsg);
         }
     }
