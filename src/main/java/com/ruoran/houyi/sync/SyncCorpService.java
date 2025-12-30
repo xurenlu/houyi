@@ -25,7 +25,7 @@ import java.util.Optional;
 @Component
 @Slf4j
 public class SyncCorpService {
-    @Value("${corpUrl}")
+    @Value("${corpUrl:}")
     private String corpUrl;
 
     @Autowired
@@ -36,6 +36,12 @@ public class SyncCorpService {
 
     @Scheduled(fixedRate = 3600 * 24 * 1000)
     public void sync() {
+        // corpUrl 已废弃，企业配置现在从 wework-corps.yml 读取
+        if (StringUtils.isEmpty(corpUrl)) {
+            log.debug("corpUrl 未配置，跳过企业信息同步（企业配置现在从 wework-corps.yml 读取）");
+            return;
+        }
+        
         String json = HttpClientUtil.doGet(corpUrl);
         if (StringUtils.isNotEmpty(json)) {
             JSONObject jsonObject = new JSONObject(json);

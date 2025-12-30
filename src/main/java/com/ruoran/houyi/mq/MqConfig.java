@@ -97,4 +97,16 @@ public class MqConfig {
         
         return properties;
     }
+    
+    /**
+     * 获取重试消费者的配置属性（包含 Group ID）
+     * 
+     * @param aliyunConfig 阿里云配置
+     * @return Properties
+     */
+    public Properties getRetryConsumerProperties(AliyunConfig aliyunConfig) {
+        Properties properties = getMqProperties(aliyunConfig);
+        properties.setProperty(PropertyKeyConst.GROUP_ID, this.retryGroupId);
+        return properties;
+    }
 }

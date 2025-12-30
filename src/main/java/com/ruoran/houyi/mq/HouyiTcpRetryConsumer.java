@@ -60,19 +60,27 @@ public class HouyiTcpRetryConsumer {
             return;
         }
         
-        log.info("初始化 RocketMQ TCP 重试消费者: topic={}, groupId={}, tag={}", 
-            mqConfig.getRetryTopic(), mqConfig.getRetryGroupId(), mqConfig.getTag());
-        
-        // 订阅重试队列
-        Map<Subscription, MessageListener> subscriptionTable = new HashMap<>();
-        Subscription subscription = new Subscription();
-        subscription.setTopic(mqConfig.getRetryTopic());
-        subscription.setExpression(mqConfig.getTag());
-        
-        subscriptionTable.put(subscription, new RetryMessageListener());
-        retryConsumer.setSubscriptionTable(subscriptionTable);
-        
-        log.info("RocketMQ TCP 重试消费者初始化完成");
+        try {
+            log.info("初始化 RocketMQ TCP 重试消费者: topic={}, groupId={}, tag={}", 
+                mqConfig.getRetryTopic(), mqConfig.getRetryGroupId(), mqConfig.getTag());
+            
+            // 订阅重试队列
+            Map<Subscription, MessageListener> subscriptionTable = new HashMap<>();
+            Subscription subscription = new Subscription();
+            subscription.setTopic(mqConfig.getRetryTopic());
+            subscription.setExpression(mqConfig.getTag());
+            
+            subscriptionTable.put(subscription, new RetryMessageListener());
+            retryConsumer.setSubscriptionTable(subscriptionTable);
+            
+            // 手动启动消费者
+            retryConsumer.start();
+            
+            log.info("RocketMQ TCP 重试消费者初始化完成");
+        } catch (Exception e) {
+            log.error("RocketMQ TCP 重试消费者初始化失败: {}", e.getMessage(), e);
+            throw new RuntimeException("Failed to initialize RocketMQ retry consumer", e);
+        }
     }
     
     /**

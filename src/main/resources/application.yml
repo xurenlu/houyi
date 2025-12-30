@@ -12,7 +12,12 @@ spring:
       hibernate:
         format_sql: true
         show_sql: false
-        dialect: org.hibernate.dialect.MySQL5InnoDBDialect
+        dialect: org.hibernate.dialect.MySQLDialect
+  redis:
+    database: ${REDIS_DATABASE:0}
+  config:
+    import:
+      - optional:classpath:wework-corps.yml
 
 server:
   port: ${SERVER_PORT:8080}
@@ -32,13 +37,13 @@ log:
 # 线程池配置
 thread-pool:
   download:
-    core-size: ${THREAD_POOL_DOWNLOAD_CORE_SIZE:8}
-    max-size: ${THREAD_POOL_DOWNLOAD_MAX_SIZE:100}
-    queue-capacity: ${THREAD_POOL_DOWNLOAD_QUEUE_CAPACITY:10000}
+    core-size: 8
+    max-size: 100
+    queue-capacity: 10000
   oss:
-    core-size: ${THREAD_POOL_OSS_CORE_SIZE:4}
-    max-size: ${THREAD_POOL_OSS_MAX_SIZE:60}
-    queue-capacity: ${THREAD_POOL_OSS_QUEUE_CAPACITY:10000}
+    core-size: 4
+    max-size: 60
+    queue-capacity: 10000
 
 # 后羿配置
 houyi:
@@ -65,14 +70,6 @@ rocketmq:
   namespace: ${ROCKETMQ_NAMESPACE:}
   public-endpoint: ${ROCKETMQ_PUBLIC_ENDPOINT:}
   retry-delay-ms: ${ROCKETMQ_RETRY_DELAY_MS:30000}
-
-# Redis 配置（如果没有配置，使用默认值）
-spring:
-  redis:
-    database: ${REDIS_DATABASE:0}
-  config:
-    import:
-      - optional:classpath:wework-corps.yml
 
 # 保持向后兼容
 aliyun:

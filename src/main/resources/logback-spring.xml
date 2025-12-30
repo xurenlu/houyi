@@ -9,7 +9,7 @@ debug:
 configuration 子节点为 appender、logger、root
 
             -->
-<configuration scan="true" scanPeriod="60 seconds" debug="true">
+<configuration scan="true" scanPeriod="60 seconds" debug="false">
     <!--<property scope="context" name="endpoint" value="${LOG_ENDPOINT:cn-beijing.log.aliyuncs.com}" />-->
     <springProperty scope="context" name="logPath" source="log.path"/>
     <shutdownHook class="ch.qos.logback.core.hook.DelayingShutdownHook"/>

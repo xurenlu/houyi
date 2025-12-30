@@ -5,14 +5,14 @@ spring:
       maximum-pool-size: 200
       max-lifetime: 1800000
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://${MYSQL_HOST:localhost}:${MYSQL_PORT:3306}/${MYSQL_DATABASE:wechat-archive}?characterEncoding=UTF-8
-    username: ${MYSQL_USERNAME:}
+    url: jdbc:mysql://${MYSQL_HOST:localhost}:${MYSQL_PORT:3306}/${MYSQL_DATABASE:houyi}?characterEncoding=UTF-8
+    username: ${MYSQL_USERNAME:root}
     password: ${MYSQL_PASSWORD:}
   redis:
     host: ${REDIS_HOST:localhost}
     port: ${REDIS_PORT:6379}
     password: ${REDIS_PASSWORD:}
-    database: ${REDIS_DATABASE:3}
+    database: ${REDIS_DATABASE:0}
 
 log:
   path: ${LOG_PATH:/var/log/houyi/}
@@ -24,12 +24,13 @@ rocketmq:
   retry-topic: ${ROCKETMQ_RETRY_TOPIC:wechat-archive-retry}
   groupId: ${ROCKETMQ_GROUP_ID:}
   retry-group-id: ${ROCKETMQ_RETRY_GROUP_ID:}
-  tag: ${ROCKETMQ_TAG:ChatDataJava}
+  tag: ${ROCKETMQ_TAG:wechat_msg}
   namespace: ${ROCKETMQ_NAMESPACE:}
   public-endpoint: ${ROCKETMQ_PUBLIC_ENDPOINT:}
+  retry-delay-ms: ${ROCKETMQ_RETRY_DELAY_MS:30000}
 
 aliyun:
-  bucket: ${ALIYUN_OSS_BUCKET:wechat-monitoring}
+  bucket: ${ALIYUN_OSS_BUCKET:}
   oss_end_point: ${ALIYUN_OSS_ENDPOINT_INTERNAL:oss-cn-shanghai-internal.aliyuncs.com}
   oss_access_key: ${ALIYUN_OSS_ACCESS_KEY:}
   oss_access_secret: ${ALIYUN_OSS_ACCESS_SECRET:}
