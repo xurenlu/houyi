@@ -18,6 +18,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.stream.StreamMessageListenerContainer;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.util.Map;
@@ -120,12 +121,13 @@ public class RedisMqConsumer {
                                     record.getId()
                                 );
                                 
-                                // 如果启用了消息备份，标记为已确认
+                                // 如果启用了消息备份，标记为已确认（异步执行，避免阻塞）
                                 if (mqConfig.isEnableMessageBackup()) {
                                     try {
-                                        messageBackupRepo.markAsAcknowledged(redisMsgId, System.currentTimeMillis());
+                                        markBackupAsAcknowledged(redisMsgId);
                                     } catch (Exception e) {
-                                        log.warn("标记消息备份为已确认失败: msgId={}, error={}", redisMsgId, e.getMessage());
+                                        // 备份标记失败不影响主流程
+                                        log.debug("标记消息备份为已确认失败: msgId={}, error={}", redisMsgId, e.getMessage());
                                     }
                                 }
                             } else {
@@ -243,6 +245,18 @@ public class RedisMqConsumer {
             && object.has("msgid") 
             && object.has("secret")
             && object.has("seq");
+    }
+    
+    /**
+     * 标记消息备份为已确认（使用独立事务）
+     */
+    @Transactional
+    public void markBackupAsAcknowledged(String redisMsgId) {
+        try {
+            messageBackupRepo.markAsAcknowledged(redisMsgId, System.currentTimeMillis());
+        } catch (Exception e) {
+            log.warn("标记消息备份为已确认失败: msgId={}, error={}", redisMsgId, e.getMessage());
+        }
     }
     
     @PreDestroy

@@ -44,19 +44,22 @@ public class RocketMqProducerTest {
         DefaultMQProducer producer = new DefaultMQProducer(GROUP_ID, rpcHook);
         
         try {
-            // 配置 Producer（参照 ffcrm 项目）
+            // 配置 Producer（参照生产代码 RocketMqProducerConfig.java）
             System.out.println("\n配置 Producer...");
             producer.setProducerGroup(GROUP_ID);
             producer.setAccessChannel(AccessChannel.CLOUD);
             producer.setEnableTrace(true);
             producer.setNamesrvAddr(NAME_SERVER_ADDR);
-            producer.setNamespaceV2(NAMESPACE);
+            // RocketMQ 5.0 Serverless 不需要设置 Namespace
+            // Namespace 已经包含在 NameServer 地址（实例 ID）中
+            // 设置会导致 Topic 名称变成 "namespace%topic" 格式，无法找到路由
+            // producer.setNamespaceV2(NAMESPACE);
             producer.setSendMsgTimeout(3000);
             
             System.out.println("Producer 配置完成:");
             System.out.println("  - Producer Group: " + producer.getProducerGroup());
-            System.out.println("  - Namespace: " + producer.getNamespace());
             System.out.println("  - NameServer: " + producer.getNamesrvAddr());
+            System.out.println("  - 注意：RocketMQ 5.0 Serverless 不设置 Namespace（已包含在 NameServer 地址中）");
             
             // 启动 Producer
             System.out.println("\n启动 Producer...");
@@ -64,8 +67,9 @@ public class RocketMqProducerTest {
             System.out.println("✅ Producer 启动成功！");
             
             // 等待一下，让 Producer 获取路由信息
-            System.out.println("\n等待 2 秒，让 Producer 获取路由信息...");
-            Thread.sleep(2000);
+            System.out.println("\n等待 5 秒，让 Producer 获取路由信息...");
+            Thread.sleep(5000);
+            System.out.println("准备发送消息到 Topic: " + TOPIC);
             
             // 构建测试消息
             String messageBody = "{\"test\":\"RocketMQ 连接测试\",\"timestamp\":" + System.currentTimeMillis() + "}";

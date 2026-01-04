@@ -33,7 +33,7 @@ public interface RedisMessageBackupRepo extends CrudRepository<RedisMessageBacku
     /**
      * 标记消息为已确认
      */
-    @Modifying
+    @Modifying(clearAutomatically = true)
     @Query("UPDATE RedisMessageBackup r SET r.status = 1, r.ackAt = :ackAt WHERE r.redisMsgId = :redisMsgId")
     void markAsAcknowledged(@Param("redisMsgId") String redisMsgId, @Param("ackAt") Long ackAt);
 
