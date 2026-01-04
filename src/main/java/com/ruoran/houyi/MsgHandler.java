@@ -400,12 +400,12 @@ public class MsgHandler {
                         }
                     }
                     if (".amr".equals(ext)) {
-                        String localPathMp3 = this.getPrefix() + dateStr + "_" + mediaPath + "" + ".mp3";
+                        String localPathMp3 = this.getPrefix() + dateStr + "_" + safeMediaPath + ".mp3";
                         Audio.toMp3(localPath, localPathMp3);
                         // 删除.amr中间文件
                         FileUtil.safeDelete(localPath);
                         localPath = localPathMp3;
-                        ossTargetPath =   "mochat2/" + dateStr.replace("_", "/") + "/" + mediaPath +".mp3";
+                        ossTargetPath = "mochat2/" + dateStr.replace("_", "/") + "/" + safeMediaPath + ".mp3";
                     }
                     Boolean result = ossUtil.upload(localPath, ossTargetPath);
                     if (result) {
@@ -620,7 +620,7 @@ public class MsgHandler {
 
                     }
                     if (".amr".equals(ext)) {
-                        String localPathMp3 = this.getPrefix() + dateStr + "_" + mediaPath + "" + ".mp3";
+                        String localPathMp3 = this.getPrefix() + dateStr + "_" + safeMediaPath + ".mp3";
                         Audio.toMp3(localPath, localPathMp3);
                         try {
                             File file = new File(localPath);
@@ -631,7 +631,7 @@ public class MsgHandler {
                             log.error("ClearFileError:",e);
                         }
                         localPath = localPathMp3;
-                        ossTargetPath =   "mochat2/" + dateStr.replace("_", "/") + "/" + mediaPath +".mp3";
+                        ossTargetPath = "mochat2/" + dateStr.replace("_", "/") + "/" + safeMediaPath + ".mp3";
                     }
                     Boolean result = ossUtil.upload(localPath, ossTargetPath);
                     if (result) {

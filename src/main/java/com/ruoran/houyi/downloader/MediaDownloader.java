@@ -95,8 +95,11 @@ public class MediaDownloader {
     private void prepareDownload(DownloadContext context) {
         String dateStr = DateUtil.nowYyyyMmDdHh();
         context.setDateStr(dateStr);
-        context.setLocalPath(prefix + dateStr + "_" + context.getMediaPath() + context.getExt());
-        context.setOssTargetPath("mochat2/" + dateStr.replace("_", "/") + "/" + context.getMediaPath() + context.getExt());
+        // 安全处理文件名，防止文件名过长或包含特殊字符
+        String safeMediaPath = FileUtil.sanitizeFilename(context.getMediaPath(), context.getMd5sum());
+        context.setMediaPath(safeMediaPath);  // 更新为安全的路径
+        context.setLocalPath(prefix + dateStr + "_" + safeMediaPath + context.getExt());
+        context.setOssTargetPath("mochat2/" + dateStr.replace("_", "/") + "/" + safeMediaPath + context.getExt());
         context.setStartDownTime(System.currentTimeMillis());
         
         FileUtil.safeDelete(context.getLocalPath());
