@@ -1,7 +1,9 @@
 package com.ruoran.houyi.mq;
 
 import com.ruoran.houyi.model.DelayMessage;
+import com.ruoran.houyi.model.RedisMessageBackup;
 import com.ruoran.houyi.repo.DelayMessageRepo;
+import com.ruoran.houyi.repo.RedisMessageBackupRepo;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Tags;
 import jakarta.annotation.Resource;
@@ -36,6 +38,9 @@ public class RedisMqProducer implements MessageProducerInterface {
     
     @Resource
     private DelayMessageRepo delayMessageRepo;
+    
+    @Resource
+    private RedisMessageBackupRepo messageBackupRepo;
     
     /**
      * 发送主消息（构建完成的消息）
@@ -128,8 +133,31 @@ public class RedisMqProducer implements MessageProducerInterface {
                 org.springframework.data.redis.connection.stream.RecordId messageId = 
                     stringRedisTemplate.opsForStream().add(topic, messageFields);
                 
+                String redisMsgId = messageId.getValue();
+                
                 log.debug("消息发送成功: topic={}, key={}, msgId={}", 
-                    topic, messageKey, messageId.getValue());
+                    topic, messageKey, redisMsgId);
+                
+                // 如果启用了消息备份，保存到数据库
+                if (mqConfig.isEnableMessageBackup()) {
+                    try {
+                        RedisMessageBackup backup = new RedisMessageBackup();
+                        backup.setTopic(topic);
+                        backup.setMessageBody(messageBody);
+                        backup.setMessageKey(messageKey);
+                        backup.setRedisMsgId(redisMsgId);
+                        backup.setTag(mqConfig.getTag());
+                        backup.setShardingKey(shardingKey);
+                        backup.setStatus(0); // 已发送到 Redis
+                        backup.setCreateAt(System.currentTimeMillis());
+                        
+                        messageBackupRepo.save(backup);
+                        log.debug("消息已备份到数据库: key={}, backupId={}", messageKey, backup.getId());
+                    } catch (Exception e) {
+                        // 备份失败不影响主流程，只记录日志
+                        log.warn("消息备份失败（不影响发送）: key={}, error={}", messageKey, e.getMessage());
+                    }
+                }
                 
                 meterRegistry.counter("houyi_pushed_msg", 
                     Tags.of("service", "redis", "type", "normal")).increment();

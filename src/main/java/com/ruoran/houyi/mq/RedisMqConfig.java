@@ -68,5 +68,11 @@ public class RedisMqConfig {
      * 延迟消息扫描间隔（毫秒）
      */
     private long delayScanIntervalMs = 1000;
+    
+    /**
+     * 是否启用消息备份到数据库（防止 Redis 数据丢失）
+     * 默认启用，建议生产环境保持启用
+     */
+    private boolean enableMessageBackup = true;
 }
 

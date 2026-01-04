@@ -88,6 +88,7 @@ redis:
     batch-size: ${REDIS_MQ_BATCH_SIZE:10}
     poll-interval-ms: ${REDIS_MQ_POLL_INTERVAL_MS:1000}
     delay-scan-interval-ms: ${REDIS_MQ_DELAY_SCAN_INTERVAL_MS:1000}
+    enable-message-backup: ${REDIS_MQ_ENABLE_BACKUP:true}  # 启用消息备份到数据库，防止 Redis 数据丢失
 
 # 保持向后兼容
 aliyun:

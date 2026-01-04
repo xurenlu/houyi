@@ -2,6 +2,7 @@ package com.ruoran.houyi.mq;
 
 import com.ruoran.houyi.DownloadThreadKeeper;
 import com.ruoran.houyi.repo.OriginalMsgRepo;
+import com.ruoran.houyi.repo.RedisMessageBackupRepo;
 import com.ruoran.houyi.model.OriginalMsg;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Tags;
@@ -46,6 +47,9 @@ public class RedisMqConsumer {
     
     @Resource
     private OriginalMsgRepo originalMsgRepo;
+    
+    @Resource
+    private RedisMessageBackupRepo messageBackupRepo;
     
     @Resource
     private MeterRegistry meterRegistry;
@@ -107,13 +111,23 @@ public class RedisMqConsumer {
                                 return;
                             }
                             
-                            if (processMessage(body, key, record.getId().getValue())) {
+                            String redisMsgId = record.getId().getValue();
+                            if (processMessage(body, key, redisMsgId)) {
                                 // 消息处理成功，ACK
                                 stringRedisTemplate.opsForStream().acknowledge(
                                     mqConfig.getRetryTopic(),
                                     mqConfig.getRetryConsumerGroup(),
                                     record.getId()
                                 );
+                                
+                                // 如果启用了消息备份，标记为已确认
+                                if (mqConfig.isEnableMessageBackup()) {
+                                    try {
+                                        messageBackupRepo.markAsAcknowledged(redisMsgId, System.currentTimeMillis());
+                                    } catch (Exception e) {
+                                        log.warn("标记消息备份为已确认失败: msgId={}, error={}", redisMsgId, e.getMessage());
+                                    }
+                                }
                             } else {
                                 // 消息处理失败，不 ACK，稍后重试
                                 log.warn("消息处理失败，稍后重试: key={}", key);
