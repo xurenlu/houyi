@@ -326,8 +326,10 @@ public class MsgHandler {
 //        }
         String indexBuff = "";
         String dateStr = DateUtil.nowYyyyMmDdHh();
-        String localPath = this.getPrefix() + dateStr + "_" + mediaPath + "" + ext;
-        String ossTargetPath = "mochat2/" + dateStr.replace("_", "/") + "/" + mediaPath + "" + ext;
+        // 安全处理文件名，防止文件名过长或包含特殊字符
+        String safeMediaPath = FileUtil.sanitizeFilename(mediaPath, md5sum);
+        String localPath = this.getPrefix() + dateStr + "_" + safeMediaPath + ext;
+        String ossTargetPath = "mochat2/" + dateStr.replace("_", "/") + "/" + safeMediaPath + ext;
 
 
         if(StringUtils.isEmpty(md5sum)){
@@ -502,8 +504,10 @@ public class MsgHandler {
         }
         String indexbuf = "";
         String dateStr = DateUtil.nowYyyyMmDdHh();
-        String localPath = this.getPrefix() + dateStr + "_" + mediaPath + "" + ext;
-        String ossTargetPath = "mochat2/" + dateStr.replace("_", "/") + "/" + mediaPath + "" + ext;
+        // 安全处理文件名，防止文件名过长或包含特殊字符
+        String safeMediaPath = FileUtil.sanitizeFilename(mediaPath, md5sum);
+        String localPath = this.getPrefix() + dateStr + "_" + safeMediaPath + ext;
+        String ossTargetPath = "mochat2/" + dateStr.replace("_", "/") + "/" + safeMediaPath + ext;
         long startDownTime = System.currentTimeMillis();
         FileUtil.safeDelete(localPath);
         if(StringUtils.isEmpty(md5sum)){
