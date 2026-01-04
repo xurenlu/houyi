@@ -35,6 +35,11 @@ rocketmq:
   tag: ${ROCKETMQ_TAG:wechat_msg}
   retry-delay-ms: ${ROCKETMQ_RETRY_DELAY_MS:30000}
 
+# Redis MQ 配置（设置为 false 使用 RocketMQ）
+redis:
+  mq:
+    enabled: ${REDIS_MQ_ENABLED:false}
+
 aliyun:
   bucket: ${ALIYUN_OSS_BUCKET:}
   oss_end_point: ${ALIYUN_OSS_ENDPOINT_INTERNAL:oss-cn-shanghai-internal.aliyuncs.com}
