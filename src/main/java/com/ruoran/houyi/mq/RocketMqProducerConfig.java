@@ -51,8 +51,8 @@ public class RocketMqProducerConfig {
             .build();
     }
     
-    @Bean
-    public Producer rocketMqProducer(ClientServiceProvider provider, ClientConfiguration clientConfiguration) 
+    @Bean(name = "producer")
+    public Producer producer(ClientServiceProvider provider, ClientConfiguration clientConfiguration) 
             throws ClientException {
         log.info("========================================");
         log.info("初始化 RocketMQ 5.0 gRPC Producer");
