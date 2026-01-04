@@ -6,7 +6,7 @@ import org.springframework.context.annotation.Configuration;
 
 /**
  * RocketMQ 5.0 配置类
- * 使用新的 RocketMQ 5.0 Java SDK
+ * 使用 RocketMQ 5.0 gRPC SDK
  * 
  * @author lh
  */
@@ -16,23 +16,33 @@ import org.springframework.context.annotation.Configuration;
 public class MqConfig {
 
     /**
-     * NameServer 地址（RocketMQ 5.0 的接入点）
+     * 接入点地址（RocketMQ 5.0 gRPC 端点）
      * 格式：rmq-cn-xxx.cn-shanghai.rmq.aliyuncs.com:8080
      */
-    private String nameSrvAddr;
+    private String endpoint;
     
     /**
-     * 主消息队列 Topic
+     * 实例用户名（从 RocketMQ 实例详情页面获取）
+     */
+    private String username;
+    
+    /**
+     * 实例密码（从 RocketMQ 实例详情页面获取）
+     */
+    private String password;
+    
+    /**
+     * 主消息队列 Topic（FIFO 顺序消息类型）
      */
     private String topic;
     
     /**
-     * 重试队列 Topic
+     * 重试队列 Topic（延迟消息类型）
      */
     private String retryTopic;
     
     /**
-     * 主消息队列 Producer/Consumer Group ID
+     * 主消息队列 Consumer Group ID
      */
     private String groupId;
     
@@ -47,21 +57,7 @@ public class MqConfig {
     private String tag;
     
     /**
-     * RocketMQ 5.0 实例 ID（命名空间）
-     * 格式：rmq-cn-xxx
-     */
-    private String namespace;
-    
-    /**
      * 重试延迟时间（毫秒），默认 30 秒
      */
     private long retryDelayMs = 30000;
-    
-    /**
-     * 获取完整的接入点地址
-     * 格式：rmq-cn-xxx.cn-shanghai.rmq.aliyuncs.com:8080
-     */
-    public String getEndpoint() {
-        return nameSrvAddr;
-    }
 }

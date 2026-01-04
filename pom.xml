@@ -25,18 +25,11 @@
             <artifactId>micrometer-registry-prometheus</artifactId>
         </dependency>
 
-        <!-- RocketMQ 5.0 Remoting SDK - 兼容 4.x 和 5.x -->
+        <!-- RocketMQ 5.0 gRPC SDK（用于阿里云 Serverless 实例） -->
         <dependency>
             <groupId>org.apache.rocketmq</groupId>
-            <artifactId>rocketmq-client</artifactId>
-            <version>5.3.1</version>
-        </dependency>
-        
-        <!-- RocketMQ ACL 支持 -->
-        <dependency>
-            <groupId>org.apache.rocketmq</groupId>
-            <artifactId>rocketmq-acl</artifactId>
-            <version>5.3.1</version>
+            <artifactId>rocketmq-client-java</artifactId>
+            <version>5.0.7</version>
         </dependency>
         
         <dependency>

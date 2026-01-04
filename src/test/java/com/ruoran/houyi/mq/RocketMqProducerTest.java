@@ -1,158 +1,229 @@
 package com.ruoran.houyi.mq;
 
-import org.apache.rocketmq.acl.common.AclClientRPCHook;
-import org.apache.rocketmq.acl.common.SessionCredentials;
-import org.apache.rocketmq.client.AccessChannel;
-import org.apache.rocketmq.client.producer.DefaultMQProducer;
-import org.apache.rocketmq.client.producer.SendResult;
-import org.apache.rocketmq.common.message.Message;
-import org.apache.rocketmq.remoting.RPCHook;
-import org.apache.rocketmq.remoting.common.RemotingHelper;
+import org.apache.rocketmq.client.apis.ClientConfiguration;
+import org.apache.rocketmq.client.apis.ClientException;
+import org.apache.rocketmq.client.apis.ClientServiceProvider;
+import org.apache.rocketmq.client.apis.SessionCredentialsProvider;
+import org.apache.rocketmq.client.apis.StaticSessionCredentialsProvider;
+import org.apache.rocketmq.client.apis.producer.Producer;
+import org.apache.rocketmq.client.apis.producer.SendReceipt;
 import org.junit.jupiter.api.Test;
 
+import java.net.InetSocketAddress;
+import java.net.Socket;
+import java.nio.charset.StandardCharsets;
+
 /**
- * RocketMQ Producer 测试
+ * RocketMQ 5.0 gRPC SDK Producer 测试
  * 用于验证 RocketMQ 连接和消息发送
  */
 public class RocketMqProducerTest {
     
     // 从环境变量读取配置
-    private static final String ACCESS_KEY = System.getenv("ALIYUN_ACCESS_KEY");
-    private static final String SECRET_KEY = System.getenv("ALIYUN_ACCESS_SECRET");
-    private static final String NAME_SERVER_ADDR = "rmq-cn-e4k4hry5b07.cn-shanghai.rmq.aliyuncs.com:8080";
-    private static final String NAMESPACE = "rmq-cn-e4k4hry5b07";
-    private static final String TOPIC = "wechat-archive-msg";
-    private static final String GROUP_ID = "wechat_msg_gid_order";
+    private static final String ENDPOINT = System.getenv("ROCKETMQ_ENDPOINT") != null ? 
+        System.getenv("ROCKETMQ_ENDPOINT") : "rmq-cn-v3m4likw605.cn-shanghai.rmq.aliyuncs.com:8080";
+    private static final String USERNAME = System.getenv("ROCKETMQ_USERNAME");
+    private static final String PASSWORD = System.getenv("ROCKETMQ_PASSWORD");
+    private static final String TOPIC = System.getenv("ROCKETMQ_TOPIC") != null ? 
+        System.getenv("ROCKETMQ_TOPIC") : "wechat-archive-msg";
+    private static final String RETRY_TOPIC = System.getenv("ROCKETMQ_RETRY_TOPIC") != null ? 
+        System.getenv("ROCKETMQ_RETRY_TOPIC") : "wechat-archive-retry";
     private static final String TAG = "wechat_msg";
     
+    /**
+     * 诊断测试：检查网络连通性和配置
+     */
     @Test
-    public void testProducerSendMessage() throws Exception {
+    public void testDiagnose() throws Exception {
         System.out.println("========================================");
-        System.out.println("开始测试 RocketMQ Producer");
-        System.out.println("接入点: " + NAME_SERVER_ADDR);
-        System.out.println("实例 ID: " + NAMESPACE);
+        System.out.println("🔍 RocketMQ 5.0 gRPC SDK 诊断测试");
+        System.out.println("========================================");
+        
+        // 1. 检查环境变量
+        System.out.println("\n1️⃣ 检查环境变量...");
+        System.out.println("  ENDPOINT: " + ENDPOINT);
+        System.out.println("  USERNAME: " + (USERNAME != null ? USERNAME.substring(0, Math.min(8, USERNAME.length())) + "***" : "❌ 未设置!"));
+        System.out.println("  PASSWORD: " + (PASSWORD != null ? "***已设置***" : "❌ 未设置!"));
+        System.out.println("  TOPIC: " + TOPIC);
+        
+        if (USERNAME == null || PASSWORD == null) {
+            System.err.println("❌ 环境变量未设置，请设置 ROCKETMQ_USERNAME 和 ROCKETMQ_PASSWORD");
+            return;
+        }
+        
+        // 2. 检查网络连通性
+        System.out.println("\n2️⃣ 检查网络连通性...");
+        String host = ENDPOINT.split(":")[0];
+        int port = Integer.parseInt(ENDPOINT.split(":")[1]);
+        System.out.println("  目标地址: " + host + ":" + port);
+        
+        try (Socket socket = new Socket()) {
+            socket.connect(new InetSocketAddress(host, port), 5000);
+            System.out.println("  ✅ 网络连接成功！");
+        } catch (Exception e) {
+            System.err.println("  ❌ 网络连接失败: " + e.getMessage());
+            System.err.println("  请检查：");
+            System.err.println("    - 是否需要禁用代理？（gRPC 不能走 HTTP 代理）");
+            System.err.println("    - 防火墙是否阻止了连接？");
+            return;
+        }
+        
+        // 3. 测试 Producer 创建
+        System.out.println("\n3️⃣ 测试 Producer 创建...");
+        
+        ClientServiceProvider provider = ClientServiceProvider.loadService();
+        SessionCredentialsProvider credentialsProvider = 
+            new StaticSessionCredentialsProvider(USERNAME, PASSWORD);
+        ClientConfiguration clientConfiguration = ClientConfiguration.newBuilder()
+            .setEndpoints(ENDPOINT)
+            .setCredentialProvider(credentialsProvider)
+            .build();
+        
+        try (Producer producer = provider.newProducerBuilder()
+                .setClientConfiguration(clientConfiguration)
+                .setTopics(TOPIC)  // 只订阅主 Topic（重试 Topic 可能不存在）
+                .build()) {
+            System.out.println("  ✅ Producer 创建成功！");
+        }
+        
+        System.out.println("\n========================================");
+        System.out.println("诊断完成，所有检查通过！");
+        System.out.println("========================================");
+    }
+    
+    /**
+     * 发送 FIFO 顺序消息测试
+     */
+    @Test
+    public void testSendFifoMessage() throws Exception {
+        System.out.println("========================================");
+        System.out.println("🚀 RocketMQ 5.0 FIFO 消息测试");
+        System.out.println("========================================");
+        
+        if (USERNAME == null || PASSWORD == null) {
+            System.err.println("❌ 请设置环境变量 ROCKETMQ_USERNAME 和 ROCKETMQ_PASSWORD");
+            return;
+        }
+        
+        System.out.println("Endpoint: " + ENDPOINT);
         System.out.println("Topic: " + TOPIC);
-        System.out.println("Group ID: " + GROUP_ID);
-        System.out.println("========================================");
+        System.out.println("Username: " + USERNAME.substring(0, Math.min(8, USERNAME.length())) + "***");
         
-        // 创建 ACL RPCHook
-        RPCHook rpcHook = new AclClientRPCHook(
-            new SessionCredentials(ACCESS_KEY, SECRET_KEY)
-        );
+        ClientServiceProvider provider = ClientServiceProvider.loadService();
+        SessionCredentialsProvider credentialsProvider = 
+            new StaticSessionCredentialsProvider(USERNAME, PASSWORD);
+        ClientConfiguration clientConfiguration = ClientConfiguration.newBuilder()
+            .setEndpoints(ENDPOINT)
+            .setCredentialProvider(credentialsProvider)
+            .build();
         
-        // 创建 Producer
-        DefaultMQProducer producer = new DefaultMQProducer(GROUP_ID, rpcHook);
+        System.out.println("\n创建 Producer...");
         
-        try {
-            // 配置 Producer（参照生产代码 RocketMqProducerConfig.java）
-            System.out.println("\n配置 Producer...");
-            producer.setProducerGroup(GROUP_ID);
-            producer.setAccessChannel(AccessChannel.CLOUD);
-            producer.setEnableTrace(true);
-            producer.setNamesrvAddr(NAME_SERVER_ADDR);
-            // RocketMQ 5.0 Serverless 不需要设置 Namespace
-            // Namespace 已经包含在 NameServer 地址（实例 ID）中
-            // 设置会导致 Topic 名称变成 "namespace%topic" 格式，无法找到路由
-            // producer.setNamespaceV2(NAMESPACE);
-            producer.setSendMsgTimeout(3000);
+        try (Producer producer = provider.newProducerBuilder()
+                .setClientConfiguration(clientConfiguration)
+                .setTopics(TOPIC)
+                .build()) {
             
-            System.out.println("Producer 配置完成:");
-            System.out.println("  - Producer Group: " + producer.getProducerGroup());
-            System.out.println("  - NameServer: " + producer.getNamesrvAddr());
-            System.out.println("  - 注意：RocketMQ 5.0 Serverless 不设置 Namespace（已包含在 NameServer 地址中）");
+            System.out.println("✅ Producer 创建成功！");
             
-            // 启动 Producer
-            System.out.println("\n启动 Producer...");
-            producer.start();
-            System.out.println("✅ Producer 启动成功！");
+            // 构建 FIFO 消息
+            String messageGroup = "test-group-001";  // 相同 group 的消息保证顺序
+            String messageBody = "{\"test\":\"FIFO 消息测试\",\"timestamp\":" + System.currentTimeMillis() + "}";
             
-            // 等待一下，让 Producer 获取路由信息
-            System.out.println("\n等待 5 秒，让 Producer 获取路由信息...");
-            Thread.sleep(5000);
-            System.out.println("准备发送消息到 Topic: " + TOPIC);
+            org.apache.rocketmq.client.apis.message.Message message = provider.newMessageBuilder()
+                .setTopic(TOPIC)
+                .setTag(TAG)
+                .setKeys("test-fifo-" + System.currentTimeMillis())
+                .setMessageGroup(messageGroup)  // FIFO 消息必须设置 MessageGroup
+                .setBody(messageBody.getBytes(StandardCharsets.UTF_8))
+                .build();
             
-            // 构建测试消息
-            String messageBody = "{\"test\":\"RocketMQ 连接测试\",\"timestamp\":" + System.currentTimeMillis() + "}";
-            Message message = new Message(
-                TOPIC,
-                TAG,
-                messageBody.getBytes(RemotingHelper.DEFAULT_CHARSET)
-            );
-            message.setKeys("test-" + System.currentTimeMillis());
-            
-            // 发送消息
-            System.out.println("\n发送测试消息...");
+            System.out.println("\n发送 FIFO 消息...");
             System.out.println("消息内容: " + messageBody);
+            System.out.println("MessageGroup: " + messageGroup);
             
-            SendResult sendResult = producer.send(message);
+            SendReceipt sendReceipt = producer.send(message);
             
             System.out.println("\n========================================");
-            System.out.println("✅ 消息发送成功！");
-            System.out.println("Message ID: " + sendResult.getMsgId());
-            System.out.println("Send Status: " + sendResult.getSendStatus());
-            System.out.println("Queue ID: " + sendResult.getMessageQueue().getQueueId());
-            System.out.println("Queue Offset: " + sendResult.getQueueOffset());
+            System.out.println("✅ FIFO 消息发送成功！");
+            System.out.println("Message ID: " + sendReceipt.getMessageId());
             System.out.println("========================================");
             
-        } catch (Exception e) {
+        } catch (ClientException e) {
             System.err.println("\n========================================");
-            System.err.println("❌ 测试失败！");
-            System.err.println("错误类型: " + e.getClass().getName());
-            System.err.println("错误信息: " + e.getMessage());
+            System.err.println("❌ FIFO 消息发送失败！");
+            System.err.println("错误: " + e.getMessage());
             System.err.println("========================================");
-            e.printStackTrace();
             throw e;
-        } finally {
-            // 关闭 Producer
-            if (producer != null) {
-                System.out.println("\n关闭 Producer...");
-                producer.shutdown();
-                System.out.println("Producer 已关闭");
-            }
         }
     }
     
+    /**
+     * 发送延迟消息测试
+     */
     @Test
-    public void testProducerWithoutNamespace() throws Exception {
+    public void testSendDelayMessage() throws Exception {
         System.out.println("========================================");
-        System.out.println("测试不设置 Namespace 的情况");
+        System.out.println("🚀 RocketMQ 5.0 延迟消息测试");
         System.out.println("========================================");
         
-        RPCHook rpcHook = new AclClientRPCHook(
-            new SessionCredentials(ACCESS_KEY, SECRET_KEY)
-        );
+        if (USERNAME == null || PASSWORD == null) {
+            System.err.println("❌ 请设置环境变量 ROCKETMQ_USERNAME 和 ROCKETMQ_PASSWORD");
+            return;
+        }
         
-        DefaultMQProducer producer = new DefaultMQProducer(GROUP_ID, rpcHook);
+        System.out.println("Endpoint: " + ENDPOINT);
+        System.out.println("Topic: " + RETRY_TOPIC);
+        System.out.println("Username: " + USERNAME.substring(0, Math.min(8, USERNAME.length())) + "***");
         
-        try {
-            producer.setProducerGroup(GROUP_ID);
-            producer.setAccessChannel(AccessChannel.CLOUD);
-            producer.setEnableTrace(true);
-            producer.setNamesrvAddr(NAME_SERVER_ADDR);
-            // 不设置 Namespace
-            producer.setSendMsgTimeout(3000);
+        ClientServiceProvider provider = ClientServiceProvider.loadService();
+        SessionCredentialsProvider credentialsProvider = 
+            new StaticSessionCredentialsProvider(USERNAME, PASSWORD);
+        ClientConfiguration clientConfiguration = ClientConfiguration.newBuilder()
+            .setEndpoints(ENDPOINT)
+            .setCredentialProvider(credentialsProvider)
+            .build();
+        
+        System.out.println("\n创建 Producer...");
+        
+        try (Producer producer = provider.newProducerBuilder()
+                .setClientConfiguration(clientConfiguration)
+                .setTopics(RETRY_TOPIC)
+                .build()) {
             
-            System.out.println("启动 Producer（不设置 Namespace）...");
-            producer.start();
-            System.out.println("✅ Producer 启动成功！");
+            System.out.println("✅ Producer 创建成功！");
             
-            Thread.sleep(2000);
+            // 构建延迟消息
+            long delayMs = 30000;  // 30 秒延迟
+            long deliveryTimestamp = System.currentTimeMillis() + delayMs;
+            String messageBody = "{\"test\":\"延迟消息测试\",\"timestamp\":" + System.currentTimeMillis() + "}";
             
-            String messageBody = "{\"test\":\"无 Namespace 测试\"}";
-            Message message = new Message(TOPIC, TAG, messageBody.getBytes(RemotingHelper.DEFAULT_CHARSET));
-            message.setKeys("test-no-ns-" + System.currentTimeMillis());
+            org.apache.rocketmq.client.apis.message.Message message = provider.newMessageBuilder()
+                .setTopic(RETRY_TOPIC)
+                .setTag(TAG)
+                .setKeys("test-delay-" + System.currentTimeMillis())
+                .setDeliveryTimestamp(deliveryTimestamp)  // 延迟消息设置投递时间
+                .setBody(messageBody.getBytes(StandardCharsets.UTF_8))
+                .build();
             
-            SendResult sendResult = producer.send(message);
-            System.out.println("✅ 消息发送成功（无 Namespace）！Message ID: " + sendResult.getMsgId());
+            System.out.println("\n发送延迟消息...");
+            System.out.println("消息内容: " + messageBody);
+            System.out.println("延迟时间: " + delayMs + " ms");
+            System.out.println("预计投递时间: " + new java.util.Date(deliveryTimestamp));
             
-        } catch (Exception e) {
-            System.err.println("❌ 无 Namespace 测试失败: " + e.getMessage());
+            SendReceipt sendReceipt = producer.send(message);
+            
+            System.out.println("\n========================================");
+            System.out.println("✅ 延迟消息发送成功！");
+            System.out.println("Message ID: " + sendReceipt.getMessageId());
+            System.out.println("========================================");
+            
+        } catch (ClientException e) {
+            System.err.println("\n========================================");
+            System.err.println("❌ 延迟消息发送失败！");
+            System.err.println("错误: " + e.getMessage());
+            System.err.println("========================================");
             throw e;
-        } finally {
-            if (producer != null) {
-                producer.shutdown();
-            }
         }
     }
 }
-

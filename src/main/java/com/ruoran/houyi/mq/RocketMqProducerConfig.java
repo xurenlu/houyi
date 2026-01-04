@@ -3,97 +3,69 @@ package com.ruoran.houyi.mq;
 import jakarta.annotation.PreDestroy;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.rocketmq.client.exception.MQClientException;
-import org.apache.rocketmq.client.producer.DefaultMQProducer;
-import org.apache.rocketmq.remoting.RPCHook;
-import org.apache.rocketmq.acl.common.AclClientRPCHook;
-import org.apache.rocketmq.acl.common.SessionCredentials;
+import org.apache.rocketmq.client.apis.ClientConfiguration;
+import org.apache.rocketmq.client.apis.ClientException;
+import org.apache.rocketmq.client.apis.ClientServiceProvider;
+import org.apache.rocketmq.client.apis.SessionCredentialsProvider;
+import org.apache.rocketmq.client.apis.StaticSessionCredentialsProvider;
+import org.apache.rocketmq.client.apis.producer.Producer;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
- * RocketMQ 5.0 生产者配置
- * 使用 Remoting SDK（兼容 4.x 和 5.x）
+ * RocketMQ 5.0 gRPC SDK 生产者配置
  * 
  * @author houyi
  */
 @Slf4j
 @Configuration
+@ConditionalOnProperty(name = "redis.mq.enabled", havingValue = "false", matchIfMissing = true)
 public class RocketMqProducerConfig {
     
     @Resource
     private MqConfig mqConfig;
     
-    @Resource
-    private AliyunConfig aliyunConfig;
-    
-    private DefaultMQProducer producer;
+    private Producer producer;
     
     @Bean
-    public DefaultMQProducer buildProducer() throws MQClientException {
+    public ClientServiceProvider clientServiceProvider() {
+        return ClientServiceProvider.loadService();
+    }
+    
+    @Bean
+    public ClientConfiguration clientConfiguration() {
         log.info("========================================");
-        log.info("初始化 RocketMQ 5.0 Producer");
+        log.info("初始化 RocketMQ 5.0 gRPC SDK 配置");
         log.info("Endpoint: {}", mqConfig.getEndpoint());
-        log.info("Namespace: {}", mqConfig.getNamespace());
-        log.info("Group ID: {}", mqConfig.getGroupId());
-        log.info("AccessKey: {}", aliyunConfig.getKey());
+        log.info("Username: {}", mqConfig.getUsername() != null ? 
+            mqConfig.getUsername().substring(0, Math.min(8, mqConfig.getUsername().length())) + "***" : "未设置");
         log.info("========================================");
         
-        // 创建 ACL RPCHook
-        RPCHook rpcHook = new AclClientRPCHook(
-            new SessionCredentials(aliyunConfig.getKey(), aliyunConfig.getSecret())
-        );
+        SessionCredentialsProvider credentialsProvider = 
+            new StaticSessionCredentialsProvider(mqConfig.getUsername(), mqConfig.getPassword());
         
-        // 创建 Producer（参照 ffcrm 项目的配置顺序）
-        producer = new DefaultMQProducer(mqConfig.getGroupId(), rpcHook);
-        
-        // 1. 设置 Producer Group（显式设置，确保生效）
-        producer.setProducerGroup(mqConfig.getGroupId());
-        
-        // 2. 设置接入方式为阿里云
-        producer.setAccessChannel(org.apache.rocketmq.client.AccessChannel.CLOUD);
-        
-        // 3. 开启消息轨迹
-        producer.setEnableTrace(true);
-        
-        // 4. 设置 NameServer 地址
-        producer.setNamesrvAddr(mqConfig.getEndpoint());
-        
-        // 5. RocketMQ 5.0 Serverless 不需要设置 Namespace
-        // Namespace 已经包含在 NameServer 地址（实例 ID）中
-        // 注释掉，避免 Topic 名称变成 "namespace%topic" 格式
-        // producer.setNamespaceV2(mqConfig.getNamespace());
-        
-        // 其他配置
-        producer.setSendMsgTimeout(3000);
-        
-        // 启动 Producer
-        producer.start();
-        
+        return ClientConfiguration.newBuilder()
+            .setEndpoints(mqConfig.getEndpoint())
+            .setCredentialProvider(credentialsProvider)
+            .build();
+    }
+    
+    @Bean
+    public Producer rocketMqProducer(ClientServiceProvider provider, ClientConfiguration clientConfiguration) 
+            throws ClientException {
         log.info("========================================");
-        log.info("RocketMQ 5.0 Producer 启动成功！");
-        log.info("Producer Group: {}", producer.getProducerGroup());
-        log.info("Namespace: {}", producer.getNamespace());
-        log.info("NameServer: {}", producer.getNamesrvAddr());
-        
-        // 测试 Topic 路由
-        try {
-            log.info("尝试获取 Topic 路由信息...");
-            org.apache.rocketmq.client.impl.producer.DefaultMQProducerImpl impl = 
-                (org.apache.rocketmq.client.impl.producer.DefaultMQProducerImpl) producer.getDefaultMQProducerImpl();
-            org.apache.rocketmq.common.message.MessageQueue[] queues = 
-                impl.getTopicPublishInfoTable().get(mqConfig.getTopic()) != null ? 
-                impl.getTopicPublishInfoTable().get(mqConfig.getTopic()).getMessageQueueList().toArray(new org.apache.rocketmq.common.message.MessageQueue[0]) : null;
-            if (queues != null && queues.length > 0) {
-                log.info("Topic {} 路由信息: {} 个队列", mqConfig.getTopic(), queues.length);
-            } else {
-                log.warn("警告：Topic {} 的路由信息为空！", mqConfig.getTopic());
-            }
-        } catch (Exception e) {
-            log.warn("无法获取 Topic 路由信息: {}", e.getMessage());
-        }
-        
+        log.info("初始化 RocketMQ 5.0 gRPC Producer");
+        log.info("Topic: {}", mqConfig.getTopic());
+        log.info("Retry Topic: {}", mqConfig.getRetryTopic());
         log.info("========================================");
+        
+        producer = provider.newProducerBuilder()
+            .setClientConfiguration(clientConfiguration)
+            .setTopics(mqConfig.getTopic(), mqConfig.getRetryTopic())
+            .build();
+        
+        log.info("RocketMQ 5.0 gRPC Producer 创建成功！");
         
         return producer;
     }
@@ -102,10 +74,10 @@ public class RocketMqProducerConfig {
     public void destroy() {
         if (producer != null) {
             try {
-                log.info("关闭 RocketMQ Producer");
-                producer.shutdown();
+                log.info("关闭 RocketMQ gRPC Producer");
+                producer.close();
             } catch (Exception e) {
-                log.error("关闭 RocketMQ Producer 失败", e);
+                log.error("关闭 RocketMQ gRPC Producer 失败", e);
             }
         }
     }

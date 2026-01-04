@@ -62,16 +62,16 @@ houyi:
     max-retry-count: 16
     big-file-timeout-ms: 300000
 
-# RocketMQ 5.0 配置（统一使用 TCP 协议）
+# RocketMQ 5.0 gRPC SDK 配置
 rocketmq:
-  nameSrvAddr: ${ROCKETMQ_NAME_SRV_ADDR:}
+  endpoint: ${ROCKETMQ_ENDPOINT:}
+  username: ${ROCKETMQ_USERNAME:}
+  password: ${ROCKETMQ_PASSWORD:}
   topic: ${ROCKETMQ_TOPIC:wechat-archive-msg}
   retry-topic: ${ROCKETMQ_RETRY_TOPIC:wechat-archive-retry}
-  groupId: ${ROCKETMQ_GROUP_ID:}
+  group-id: ${ROCKETMQ_GROUP_ID:}
   retry-group-id: ${ROCKETMQ_RETRY_GROUP_ID:}
   tag: ${ROCKETMQ_TAG:ChatDataJava}
-  namespace: ${ROCKETMQ_NAMESPACE:}
-  public-endpoint: ${ROCKETMQ_PUBLIC_ENDPOINT:}
   retry-delay-ms: ${ROCKETMQ_RETRY_DELAY_MS:30000}
 
 # Redis 消息队列配置（替代 RocketMQ）

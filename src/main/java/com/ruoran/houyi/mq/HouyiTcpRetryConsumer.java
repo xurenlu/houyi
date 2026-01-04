@@ -6,36 +6,40 @@ import com.ruoran.houyi.model.OriginalMsg;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Tags;
 import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
-import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyContext;
-import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
-import org.apache.rocketmq.client.consumer.listener.MessageListenerConcurrently;
-import org.apache.rocketmq.common.message.MessageExt;
+import org.apache.rocketmq.client.apis.consumer.SimpleConsumer;
+import org.apache.rocketmq.client.apis.message.MessageView;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.stereotype.Component;
 
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
- * RocketMQ 5.0 重试消费者
- * 消费重试队列中的消息，重新下载失败的文件
- * 使用 Remoting SDK（兼容 4.x 和 5.x）
+ * RocketMQ 5.0 gRPC SDK 重试消费者
+ * 消费重试队列中的延迟消息，重新下载失败的文件
+ * 使用 SimpleConsumer 进行消息拉取
  * 
  * @author houyi
  */
 @Slf4j
 @Component
+@ConditionalOnBean(SimpleConsumer.class)
 public class HouyiTcpRetryConsumer {
 
-    @Resource(name = "buildRetryConsumer")
-    private DefaultMQPushConsumer retryConsumer;
+    @Resource
+    private SimpleConsumer retrySimpleConsumer;
     
     @Resource
     private MqConfig mqConfig;
@@ -51,6 +55,9 @@ public class HouyiTcpRetryConsumer {
     
     @Value("${spring.profiles.active:dev}")
     private String env;
+    
+    private final AtomicBoolean running = new AtomicBoolean(false);
+    private ExecutorService consumerExecutor;
 
     @PostConstruct
     public void init() {
@@ -60,48 +67,71 @@ public class HouyiTcpRetryConsumer {
             return;
         }
         
-        if (retryConsumer == null) {
+        if (retrySimpleConsumer == null) {
             log.warn("重试消费者未创建，跳过初始化");
             return;
         }
         
-        try {
-            log.info("启动 RocketMQ 5.0 重试消费者: topic={}, groupId={}, tag={}", 
-                mqConfig.getRetryTopic(), mqConfig.getRetryGroupId(), mqConfig.getTag());
-            
-            // 注册消息监听器
-            retryConsumer.registerMessageListener(new MessageListenerConcurrently() {
-                @Override
-                public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> msgs, 
-                                                                ConsumeConcurrentlyContext context) {
-                    for (MessageExt msg : msgs) {
-                        try {
-                            if (processMessage(msg)) {
-                                // 消息处理成功
-                                continue;
-                            } else {
-                                // 消息处理失败，稍后重试
-                                return ConsumeConcurrentlyStatus.RECONSUME_LATER;
-                            }
-                        } catch (Exception e) {
-                            log.error("处理重试消息异常: msgId={}, error={}", 
-                                msg.getMsgId(), e.getMessage(), e);
-                            // 返回 RECONSUME_LATER，让 RocketMQ 稍后重新投递
-                            return ConsumeConcurrentlyStatus.RECONSUME_LATER;
-                        }
-                    }
-                    return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
+        log.info("启动 RocketMQ 5.0 gRPC 重试消费者: topic={}, groupId={}, tag={}", 
+            mqConfig.getRetryTopic(), mqConfig.getRetryGroupId(), mqConfig.getTag());
+        
+        running.set(true);
+        consumerExecutor = Executors.newSingleThreadExecutor(r -> {
+            Thread t = new Thread(r, "rocketmq-retry-consumer");
+            t.setDaemon(true);
+            return t;
+        });
+        
+        consumerExecutor.submit(this::pollMessages);
+        
+        log.info("RocketMQ 5.0 gRPC 重试消费者启动成功");
+    }
+    
+    /**
+     * 轮询消息
+     */
+    private void pollMessages() {
+        while (running.get()) {
+            try {
+                // 拉取消息，最多等待 30 秒
+                List<MessageView> messages = retrySimpleConsumer.receive(32, Duration.ofSeconds(30));
+                
+                if (messages.isEmpty()) {
+                    continue;
                 }
-            });
-            
-            // 启动消费者
-            retryConsumer.start();
-            
-            log.info("RocketMQ 5.0 重试消费者启动成功");
-        } catch (Exception e) {
-            log.error("RocketMQ 5.0 重试消费者启动失败: {}", e.getMessage(), e);
-            throw new RuntimeException("Failed to initialize RocketMQ retry consumer", e);
+                
+                log.debug("收到 {} 条重试消息", messages.size());
+                
+                for (MessageView message : messages) {
+                    try {
+                        if (processMessage(message)) {
+                            // 消息处理成功，确认消息
+                            retrySimpleConsumer.ack(message);
+                        } else {
+                            // 消息处理失败，稍后重试（不 ack，让消息重新投递）
+                            log.warn("消息处理失败，等待重新投递: msgId={}", message.getMessageId());
+                        }
+                    } catch (Exception e) {
+                        log.error("处理重试消息异常: msgId={}, error={}", 
+                            message.getMessageId(), e.getMessage(), e);
+                    }
+                }
+                
+            } catch (Exception e) {
+                if (running.get()) {
+                    log.error("拉取消息异常: {}", e.getMessage(), e);
+                    // 短暂休眠后继续
+                    try {
+                        Thread.sleep(1000);
+                    } catch (InterruptedException ie) {
+                        Thread.currentThread().interrupt();
+                        break;
+                    }
+                }
+            }
         }
+        
+        log.info("重试消费者轮询线程已停止");
     }
     
     /**
@@ -110,9 +140,9 @@ public class HouyiTcpRetryConsumer {
      * @param message 消息
      * @return true 表示成功，false 表示需要重试
      */
-    private boolean processMessage(MessageExt message) {
-        String msgBody = new String(message.getBody(), StandardCharsets.UTF_8);
-        String msgId = message.getMsgId();
+    private boolean processMessage(MessageView message) {
+        String msgBody = StandardCharsets.UTF_8.decode(message.getBody()).toString();
+        String msgId = message.getMessageId().toString();
         
         try {
             log.info("收到重试消息: msgId={}, topic={}", msgId, message.getTopic());
@@ -185,5 +215,14 @@ public class HouyiTcpRetryConsumer {
             && object.has("msgid") 
             && object.has("secret")
             && object.has("seq");
+    }
+    
+    @PreDestroy
+    public void destroy() {
+        running.set(false);
+        if (consumerExecutor != null) {
+            consumerExecutor.shutdown();
+            log.info("重试消费者执行器已关闭");
+        }
     }
 }
